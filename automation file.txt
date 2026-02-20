@@ -1,0 +1,287 @@
+import pandas as pd
+import numpy as np
+
+f_path = r"c:\Users\23225632\Documents\Data\Book5 (1).xlsx"
+output_file = r"c:\Users\23225632\Documents\Data\Masterfile.xlsx"
+month = "Feb 26"
+
+with_customer_issues = [
+            "Customer : Device Powered off",
+            "Customer : Device powered off",
+            "Customer : Barring",
+            "Customer : Enquiry",
+            "Customer : LAN Failure",
+            "Customer : No Outage Observed",
+            "Customer : Non Payment",
+            "Customer : Reconnection",
+            "Customer : Router Configuration",
+            "Customer : Unknown",
+            "Network : Bandwidth Maxing",
+            "Physical Connection of Router Port",
+            "Customer : Physical Router Connection",
+            "Router Configuration : No downtime observed",
+            "Customer : Radio / Router reboot",
+            "Customer : Password Reset",
+        ]
+without_customer_issues =[
+            "24 Online : Monthly Renewal",
+            "24Online : Monthly Renewal",
+            "Equipment : Hardware Failure : IDU",
+            "Equipment : Hardware Failure : Radio",
+            "Equipment : Hardware Failure : Router",
+            "Equipment : Hardware Failure",
+            "Equipment : Soft Failure : Radio",
+            "Equipment : Soft Failure : Router",
+            "Fiber Outage : Backhaul Issue",
+            "Fiber Outage : FTTH : Low power signal",
+            "Fiber Outage : FTTH : Loss of Signal",
+            "Hardware : Cable issue",
+            "Hardware : Cable Issue",
+            "LOS - Radio Alignment",
+            "LOS- Radio Alignment",
+            "MW Transmission outages : Backhaul Issue",
+            "MW Transmission Outage : Backhaul Issue",
+            "MW Transmission outages : Last Mile",
+            "MW Transmission Outage : Last Mile",
+            "Network : Site Passive Failure",
+            "Planned Activity",
+            "Projects : Radio replacement",
+            "Projects : Relocation",
+            "Projects : Service integration",
+            "Project : Service Integration",
+            "Projects : Physical Survey",
+            "Radio Configuration : Subscriber Module - SM",
+            "Radio Link Test : Poor uploads/ downloads",
+            "Radio Link Test : Radio packet drops",
+            "Radio Link Test : Radio Packet Drops",
+            "Radio Link Test : Poor uploads/Downloads",
+            "Radio Stability : Access Point Down",
+            "Radio Stability : Access Point - AP",
+            "Router Configuration : Default in configuration",
+            "SIP Line : ODU/5G Router",
+            "SIP Line",
+            "Fiber Outage : Last Mile",
+            "Equipment : Software Failure",
+            "Radio Configuration : Access Point - AP",
+            "24Online : Outage",
+            '24 Online : Outage',
+            "Non Outage Related Ticket : NSA - DCN Visibility",
+            "NON Outage Related Ticket : NSA - DCN Visibility : No Downtime Observed",
+            "NON Outage Related Ticket : NSA - DCN Visibility : No downtime observed"
+        ]
+ 
+l1_resolvers = [
+            "Customer : Device powered off",
+            "Customer : Device Powered off",
+            "Customer : Enquiry",
+            "Customer : LAN Failure",
+            "Customer : No Outage Observed",
+            "Customer : Router Configuration",
+            "Customer : Unknown",
+            "Equipment : Soft Failure : Radio",
+            "Equipment : Soft Failure : Router",
+            "Network : Bandwidth Maxing",
+            "Physical Connection of Router Port",
+            "Customer : Physical Router Connection",
+            "Radio Link Test : Poor uploads/ downloads",
+            "Radio Link Test : Poor uploads/Downloads",
+            "Router Configuration : No downtime observed",
+            "Customer : Radio / Router reboot",
+            "Customer : Password Reset",
+            "Radio Configuration : Access Point - AP",
+            "Non Outage Related Ticket : NSA - DCN Visibility",
+            "NON Outage Related Ticket : NSA - DCN Visibility : No Downtime Observed",
+            "NON Outage Related Ticket : NSA - DCN Visibility : No downtime observed"
+ 
+            # "Radio Stability : Access Point - AP",
+            # "NON Outage Related Ticket : NSA - DCN Visibility : No Downtime Observed",
+            # "Customer : Device Powered off",
+            # "Radio Link Test : Poor uploads/Downloads",
+            # "Customer : LAN Failure",
+            # "Network : Bandwidth Maxing",
+            # "Customer : No Outage Observed",
+            # "Customer : Radio / Router reboot",
+            # "Network : Interference"
+        ]
+ 
+l2_resolvers = [
+            "24 Online : Monthly Renewal",
+            "24Online : Monthly Renewal",
+            "Customer : Barring",
+            "Customer : Non Payment",
+            "Customer : Reconnection",
+            "Equipment : Hardware Failure : IDU",
+            "Equipment : Hardware Failure : Radio",
+            "Equipment : Hardware Failure : Router",
+            "Equipment : Hardware Failure",
+            "Fiber Outage : Backhaul Issue",
+            "Hardware : Cable issue",
+            "Hardware : Cable Issue",
+            "LOS - Radio Alignment",
+            "LOS- Radio Alignment",
+            "MW Transmission outages : Backhaul Issue",
+            "MW Transmission Outage : Backhaul Issue",
+            "MW Transmission outages : Last Mile",
+            "MW Transmission Outage : Last Mile",
+            "Network : Site Passive Failure",
+            "Planned Activity",
+            "Projects : Radio replacement",
+            "Projects : Relocation",
+            "Projects : Service integration",
+            "Project : Service Integration",
+            "Projects : Physical Survey",
+            "Radio Configuration : Subscriber Module - SM",
+            "Radio Link Test : Radio packet drops",
+            "Radio Link Test : Radio Packet Drops",
+            "Radio Stability : Access Point Down",
+            "Radio Stability : Access Point - AP",
+            "Router Configuration : Default in configuration",
+            "SIP Line : ODU/5G Router",
+            "SIP Line",
+            "Fiber Outage : Last Mile",
+            "Fiber Outage : FTTH : Low power signal",
+            "Fiber Outage : FTTH : Loss of Signal",
+            "Equipment : Software Failure",
+            "24Online : Outage",
+            '24 Online : Outage'
+ 
+        ]
+
+
+def etl(path,country,month_date):
+    #Extract the file
+    df = pd.read_excel(path,sheet_name = "Sheet1")
+    #Filter out the Cancelled Requests
+    df_clean = df[df["Status"] != "Cancelled"]
+    #Convert data types of date, Closed and PET
+    df_clean["Date"] = pd.to_datetime(df_clean["Date"])
+    df_clean["Closed Date"] = pd.to_datetime(df_clean["Close Date"])
+    df_clean["Problem End Time"] = pd.to_datetime(df_clean["Problem End Time"])
+    #Fill in the Null Values for the PET so as to Attain a MTTR
+    df_clean["Problem End Time"] = df_clean["Problem End Time"].fillna(df_clean["Closed Date"])
+    #Creating the Resolver and Issue Type Column
+    df_clean["Resolver"] = np.select(
+        [
+            df_clean["Request Type"].str[3:].isin(l1_resolvers),
+            df_clean["Request Type"].str[3:].isin(l2_resolvers)
+         ],
+         [
+             "L1","L2"
+         ],default=None)
+    df_clean["Issue Type"] = np.select(
+        [
+            df_clean["Request Type"].str[3:].isin(with_customer_issues),
+            df_clean["Request Type"].str[3:].isin(without_customer_issues)
+        ],
+        [
+            "With Customer Issues", "Without Customer Issues"
+        ], default= None)
+    #We create the MTTR Column (HOURS!)
+    df_clean["MTTR"] = (df_clean["Problem End Time"] - df_clean["Date"]).dt.total_seconds() / 3600
+    #We Calculate the Total, Proactive and reactive Ticket count
+    #Specify Country
+    df_ct = df_clean[df_clean["Request Type"].str.startswith(country)]
+    #Country specific Calcs
+    #We Calculate the Total, Proactive and reactive Ticket count
+    ct_total_tickets = df_ct["No."].count()
+    ct_Pro_tickets = df_ct[df_ct["Request Type.1"] == "Proactive"]["No."].count()
+    ct_Re_tickets = df_ct[df_ct["Request Type.1"] == "Reactive"]["No."].count()
+    ct_percentage_pro = round(ct_Pro_tickets / ct_total_tickets * 100,2)
+    ct_percentage_re = round(ct_Re_tickets / ct_total_tickets * 100,2)
+    #SLA Calculations. Average Hrs and those without Customer Issues    
+    ct_mttr_within = df_ct[df_ct["MTTR"] <=4 ]["No."].count()
+    ct_mttr_outside = df_ct[df_ct["MTTR"] >4 ]["No."].count() 
+    ct_sla_perc = round(ct_mttr_within / ct_total_tickets * 100,2)
+    ct_mttr_avg = round(df_ct["MTTR"].mean(), 2)
+    ct_without_ci = df_ct[df_ct["Issue Type"] == "Without Customer Issues"]["No."].count()
+    ct_mean_without_ci = round(df_ct[df_ct["Issue Type"] == "Without Customer Issues"]["MTTR"].mean(),2)
+
+    #Further filter = Without Specific Issues
+    filter_ct = df_ct[~df_ct["Request Type"].str[3:].isin(
+                [
+                "Customer : Device Powered off",
+                "Customer : Device powered off",
+                "Customer : Radio / Router reboot",
+                "Network : Interference"
+                ])] 
+    fil_total_tickets = filter_ct["No."].count()
+    fil_pro_tickets = filter_ct[filter_ct["Request Type.1"]=="Proactive"]["No."].count()
+    fil_re_tickets = filter_ct[filter_ct["Request Type.1"]=="Reactive"]["No."].count()
+    fil_percentage_pro = round(fil_pro_tickets / fil_total_tickets * 100,2)
+    fil_percentage_re = round(fil_re_tickets / fil_total_tickets * 100,2)
+    fil_mttr_avg = round(filter_ct["MTTR"].mean(),2)
+    fil_mttr_within = filter_ct[filter_ct["MTTR"]<=4]["No."].count()
+    fil_mttr_outside = filter_ct[filter_ct["MTTR"]>4]["No."].count()
+    fil_percentage_sla = round(fil_mttr_within / fil_total_tickets * 100, 2)
+
+    fil_mean_withoutcustomerissues = round(filter_ct[filter_ct["Issue Type"] == "Without Customer Issues"]["MTTR"].mean(), 2)
+
+    fault_rate = round(fil_total_tickets / ct_total_tickets * 100,2)
+
+    #Creating a Dataset for displaying
+    resultSet_rows = [
+        ct_total_tickets,
+        ct_Pro_tickets,
+        ct_percentage_pro,
+        ct_percentage_re,
+        fault_rate,
+        ct_sla_perc,
+        ct_mttr_avg,
+        " ",
+        ct_total_tickets,
+        ct_Pro_tickets,
+        ct_Re_tickets,
+        ct_mttr_within,
+        ct_mttr_outside,
+        ct_mttr_avg,
+        ct_sla_perc,
+        ct_mean_without_ci,
+        fil_total_tickets,
+        fil_pro_tickets,
+        fil_re_tickets,
+        fil_mttr_within,
+        fil_mttr_outside,
+        fil_percentage_sla,
+        fil_mttr_avg,
+        fil_mean_withoutcustomerissues
+    ]
+    resultSet = pd.DataFrame(resultSet_rows, columns=[month_date])
+    return resultSet
+
+df_ke = etl(f_path,"KE",month)
+df_ug = etl(f_path, "UG",month)
+df_sc = etl(f_path,"SC",month)
+
+
+
+sheets = {
+    "KE_2026": df_ke,
+    "UG_2026": df_ug,
+    "SC_2026": df_sc,
+}
+# Fix: Convert values to numeric, coercing errors to NaN, before aggregation
+def update_masterfile_with_data(masterfile, df, month):
+    masterfile.loc[:, month] = df[month].values
+
+    month_cols = masterfile.columns[2:-1] if masterfile.shape[1] > 3 else masterfile.columns[2:]
+
+    fy26 = []
+    for idx in range(len(masterfile)):
+        vals = pd.to_numeric(masterfile.loc[idx, month_cols], errors='coerce')
+        if idx in [0, 1]:
+            fy26.append(vals.sum())
+        elif 2 <= idx <= 7:
+            fy26.append(vals.mean())
+        else:
+            fy26.append(None)
+    masterfile['FY26'] = fy26
+    return masterfile
+
+with pd.ExcelWriter(output_file, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+    for sheet_name, df in sheets.items():
+        masterfile = pd.read_excel(output_file, sheet_name=sheet_name)
+        updated = update_masterfile_with_data(masterfile, df, month)
+        updated.to_excel(writer, index=False, sheet_name=sheet_name)
+
+
+

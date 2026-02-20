@@ -338,11 +338,12 @@ class App:
         self.month_var = StringVar()
         self._row("Month (e.g., Feb 26):", self.month_var, None)
 
-        # RUN button
-        btn = ttk.Button(master, text="Run", command=self.on_run)
-        btn.pack(pady=(12, 10), fill=X, padx=14)
 
         # Footer
+                # RUN button
+        btn = ttk.Button(master, text="Run", command=self.on_run)
+        btn.pack(pady=(12, 10), fill=X, padx=300)
+
         footer = Label(master, text="Tip: Make sure both files exist and are closed in Excel.", fg="#bbbbbb", bg=BLACK)
         footer.pack(pady=(2, 10))
 
@@ -412,7 +413,7 @@ def main():
     root = Tk()
     app = App(root)
     # Fixed small window
-    root.geometry("680x260")
+    root.geometry("980x660")
     root.resizable(False, False)
     root.mainloop()
 
